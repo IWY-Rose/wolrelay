@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WOL Control Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 2rem auto; padding: 0 1rem; background-color: #f8f9fa; }
+        h1 { color: #333; }
+        #buttons-container { display: flex; flex-direction: column; gap: 1rem; }
+        button { font-size: 1.2rem; padding: 0.8rem 1rem; border: none; border-radius: 8px; color: white; background-color: #007bff; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; font-family: monospace; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+
+    <h1>WOL Control Panel</h1>
+
+    <div id="buttons-container"></div>
+
+    <p id="status">Welcome! Click a button to wake a device.</p>
+
+    <script>
+        // --- CONFIGURATION ---
+
+        // 1. Paste the Cloudflare URL you saved earlier.
+        const CLOUDFLARE_URL = 'https://rounds-sellers-replacement-publishing.trycloudflare.com/wol';
+
+        // 2. Use the same secret key you set in your server.js file.
+        const SECRET_KEY = 'dejavu420';
+
+        // 3. List all the devices you want to be able to wake up.
+        //    Get the MAC addresses from the target computers.
+        const DEVICES = [
+            { name: 'Living Room PC', mac: 'A1:B2:C3:D4:E5:F6' },
+            { name: 'Family Media Player', mac: '11:22:33:44:55:66' },
+            { name: 'My Bedroom Laptop', mac: '80:c1:6e:3f:9a:5e' }
+            // Add more devices here by copying the line above
+        ];
+
+        // --- END CONFIGURATION ---
+
+
+        // --- SCRIPT (No need to edit below this line) ---
+        const buttonsContainer = document.getElementById('buttons-container');
+        const statusElement = document.getElementById('status');
+
+        function renderButtons() {
+            buttonsContainer.innerHTML = ''; // Clear existing buttons
+            DEVICES.forEach(device => {
+                const button = document.createElement('button');
+                button.textContent = `Wake ${device.name}`;
+                button.onclick = () => sendWol(device.mac, device.name);
+                buttonsContainer.appendChild(button);
+            });
+        }
+
+        async function sendWol(macAddress, deviceName) {
+            statusElement.textContent = `Sending WOL packet to ${deviceName}...`;
+            statusElement.style.color = '#333';
+
+            try {
+                if (!CLOUDFLARE_URL.startsWith('https://')) {
+                     throw new Error('Invalid Cloudflare URL. Please check your configuration.');
+                }
+            
+                const response = await fetch(CLOUDFLARE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mac: macAddress, key: SECRET_KEY })
+                });
+
+                const responseText = await response.text();
+                if (!response.ok) {
+                    throw new Error(responseText);
+                }
+                statusElement.textContent = `Success! Server says: "${responseText}"`;
+                statusElement.style.color = '#155724';
+            } catch (error) {
+                console.error('WOL Error:', error);
+                statusElement.textContent = `Error waking ${deviceName}: ${error.message}`;
+                statusElement.style.color = '#721c24';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', renderButtons);
+    </script>
+
+</body>
+</html>
